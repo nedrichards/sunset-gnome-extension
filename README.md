@@ -30,6 +30,53 @@ This extension uses civil dusk and civil dawn because the goal is not to model f
 
 Using civil twilight also avoids making dark mode arrive very late in summer at higher latitudes. Waiting for nautical or astronomical dusk can be noticeably delayed, or may not happen at all in some places and seasons. Civil twilight gives a more predictable appearance change while still being based on the user's real location and date.
 
+## Product Decisions
+
+The extension is deliberately small. It does one thing: it changes GNOME's existing colour-scheme preference at a natural point in the day. It does not try to replace Night Light, apply custom themes, control wallpaper, or manage application-specific dark modes.
+
+### Use GNOME's Native Appearance Setting
+
+The extension writes to:
+
+```text
+org.gnome.desktop.interface color-scheme
+```
+
+That means it uses the same platform preference exposed by GNOME Settings. Applications that follow GNOME's colour-scheme setting respond normally, and applications that ignore it are left alone. This keeps the extension predictable and avoids maintaining a separate theme system.
+
+### Switch at Civil Dusk and Civil Dawn
+
+The appearance changes are based on civil twilight rather than clock time, sunrise, sunset, or full darkness:
+
+- Civil dusk sets the scheme to `prefer-dark`.
+- Civil dawn sets the scheme back to `default`.
+
+This makes the switch follow the user's actual place and season. A fixed time would be wrong for much of the year, especially at higher latitudes. Sunset alone is usually too early, because there can still be plenty of useful daylight. Nautical or astronomical twilight are usually too late for an interface preference, because they describe much darker conditions than the point where a desktop starts to feel like it belongs in evening mode.
+
+### Ask for Location Briefly, Then Stop
+
+The extension asks GeoClue for one coarse location fix when it starts, then stops the GeoClue client. It does not keep a continuous location subscription running in the background.
+
+That choice is enough for this feature because civil dawn and dusk do not need second-by-second location tracking. A coarse fix gives a useful local solar schedule, while avoiding unnecessary long-running location activity.
+
+### Reuse Night Light Coordinates as a Fallback
+
+If GeoClue is unavailable, denied, or slow, the extension tries GNOME Night Light's cached coordinates. Night Light already needs similar location information to make a time-of-day display decision, so reusing its cached value makes the extension more resilient without asking the user to enter a city or latitude and longitude manually.
+
+If neither GeoClue nor Night Light can provide usable coordinates, the extension leaves the current appearance unchanged. Guessing a location would make the feature feel unreliable, so the safer behaviour is to do nothing until a real location is available.
+
+### Respect Manual Changes
+
+If the user changes GNOME's appearance manually after the extension has applied a value, the extension treats that as intentional. It waits until the next scheduled dawn or dusk transition before changing the setting again.
+
+This avoids a tug of war between the extension and the user. The extension handles the routine daily transition, but the user's explicit choice wins for the current period.
+
+### Restore Carefully on Disable
+
+When the extension is disabled, it restores the appearance that was active when the extension was enabled, but only if the current setting still matches the value the extension last applied. If the user has changed the setting manually, the extension leaves it alone.
+
+That keeps disabling the extension reversible without overwriting a later user choice.
+
 ## Development
 
 Compile the schema while running from a checkout:
@@ -38,11 +85,13 @@ Compile the schema while running from a checkout:
 glib-compile-schemas schemas
 ```
 
-Run the pure solar calculation tests:
+Run the solar calculation tests:
 
 ```sh
 npm test
 ```
+
+The test suite keeps London as an explicit reference case, then stress-tests the solar scheduling code across every IANA timezone exposed by the local Node/tzdata build. It also includes real-world Antarctic and Arctic locations, date-line longitudes, polar and tropical latitudes, DST boundaries, and awkward offset zones such as Lord Howe, Chatham, Marquesas, Newfoundland, Casablanca, Gaza, Tehran, Santiago, and Apia.
 
 Build an installable extension zip:
 
