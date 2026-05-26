@@ -67,6 +67,29 @@ const tzdataStressLocations = [
     [['Pacific/Apia'], -13.8333, -171.75],
 ];
 
+const goldenSolarFixtures = [
+    ['London summer solstice', ['Europe/London'], 2026, 5, 21, london.latitude, london.longitude,
+        [3 * 60, 4 * 60 + 45], [21 * 60 + 15, 22 * 60 + 45]],
+    ['London winter solstice', ['Europe/London'], 2026, 11, 21, london.latitude, london.longitude,
+        [6 * 60 + 45, 8 * 60], [16 * 60, 17 * 60 + 15]],
+    ['Casablanca spring equinox', ['Africa/Casablanca'], 2026, 2, 20, 33.5731, -7.5898,
+        [5 * 60 + 30, 6 * 60 + 45], [18 * 60 + 30, 19 * 60 + 45]],
+    ['New York summer solstice', ['America/New_York'], 2026, 5, 21, 40.7128, -74.0060,
+        [4 * 60 + 15, 5 * 60 + 30], [20 * 60 + 30, 21 * 60 + 45]],
+    ['Tokyo summer solstice', ['Asia/Tokyo'], 2026, 5, 21, 35.6762, 139.6503,
+        [3 * 60 + 15, 4 * 60 + 30], [19 * 60, 20 * 60]],
+    ['Sydney summer solstice', ['Australia/Sydney'], 2026, 11, 21, -33.8688, 151.2093,
+        [4 * 60 + 30, 5 * 60 + 45], [20 * 60, 21 * 60 + 15]],
+    ['Lord Howe summer solstice', ['Australia/Lord_Howe'], 2026, 11, 21, -31.55, 159.08,
+        [4 * 60 + 15, 5 * 60 + 30], [19 * 60 + 15, 20 * 60 + 30]],
+    ['Chatham summer solstice', ['Pacific/Chatham'], 2026, 11, 21, -43.95, -176.56,
+        [4 * 60 + 30, 5 * 60 + 45], [21 * 60 + 15, 22 * 60 + 30]],
+    ['Apia summer solstice', ['Pacific/Apia'], 2026, 11, 21, -13.8333, -171.75,
+        [5 * 60, 6 * 60], [18 * 60 + 45, 19 * 60 + 45]],
+    ['Tromso spring equinox', ['Europe/Oslo'], 2026, 2, 20, 69.6492, 18.9553,
+        [4 * 60, 5 * 60 + 30], [18 * 60 + 15, 19 * 60 + 45]],
+];
+
 const keyLatitudes = [
     -90,
     -80,
@@ -122,6 +145,10 @@ function assertSameLocalDay(left, right, message) {
     assert(left.getFullYear() === right.getFullYear() &&
         left.getMonth() === right.getMonth() &&
         left.getDate() === right.getDate(), message);
+}
+
+function assertLocalMinutesBetween(date, range, message) {
+    assertBetween(localMinutes(date), range[0], range[1], message);
 }
 
 function assertSolarStateShape(state, now, message) {
@@ -266,6 +293,82 @@ function runTzdataStressLocationSuite() {
     }
 }
 
+function runGoldenSolarFixtureSuite() {
+    const fixtures = goldenSolarFixtures.filter(([, aliases]) => aliases.includes(process.env.TZ));
+    assert(fixtures.length > 0, `No golden solar fixtures for ${process.env.TZ}`);
+
+    for (const [name, _aliases, year, month, day, latitude, longitude, dawnRange, duskRange] of fixtures) {
+        const solarDay = calculateSolarDay(new Date(year, month, day, 12, 0, 0), latitude, longitude);
+        assert(solarDay.kind === 'normal', `${name}: should have civil dawn and dusk`);
+        assertSameLocalDay(solarDay.dawn, new Date(year, month, day), `${name}: dawn local day`);
+        assertSameLocalDay(solarDay.dusk, new Date(year, month, day), `${name}: dusk local day`);
+        assertLocalMinutesBetween(solarDay.dawn, dawnRange, `${name}: civil dawn local time`);
+        assertLocalMinutesBetween(solarDay.dusk, duskRange, `${name}: civil dusk local time`);
+    }
+}
+
+function runTransitionBoundarySuite() {
+    const solarDay = calculateSolarDay(new Date(2026, 5, 21, 12, 0, 0),
+        london.latitude, london.longitude);
+    assert(solarDay.kind === 'normal', 'London boundary test should have civil dawn and dusk');
+
+    const oneSecond = 1000;
+    const beforeDawn = classifySolarState(new Date(solarDay.dawn.getTime() - oneSecond),
+        london.latitude, london.longitude);
+    const atDawn = classifySolarState(solarDay.dawn, london.latitude, london.longitude);
+    const afterDawn = classifySolarState(new Date(solarDay.dawn.getTime() + oneSecond),
+        london.latitude, london.longitude);
+    assert(beforeDawn.scheme === SCHEME_DARK, 'One second before civil dawn should be dark');
+    assert(atDawn.scheme === SCHEME_DEFAULT, 'Exactly at civil dawn should switch to default');
+    assert(afterDawn.scheme === SCHEME_DEFAULT, 'One second after civil dawn should be default');
+
+    const beforeDusk = classifySolarState(new Date(solarDay.dusk.getTime() - oneSecond),
+        london.latitude, london.longitude);
+    const atDusk = classifySolarState(solarDay.dusk, london.latitude, london.longitude);
+    const afterDusk = classifySolarState(new Date(solarDay.dusk.getTime() + oneSecond),
+        london.latitude, london.longitude);
+    assert(beforeDusk.scheme === SCHEME_DEFAULT, 'One second before civil dusk should be default');
+    assert(atDusk.scheme === SCHEME_DARK, 'Exactly at civil dusk should switch to dark');
+    assert(afterDusk.scheme === SCHEME_DARK, 'One second after civil dusk should be dark');
+}
+
+function findFirstNormalDay(year, latitude, longitude) {
+    for (let month = 0; month < 12; month++) {
+        for (let day = 1; day <= 31; day++) {
+            const now = new Date(year, month, day, 12, 0, 0);
+            if (now.getMonth() !== month)
+                continue;
+
+            const solarDay = calculateSolarDay(now, latitude, longitude);
+            if (solarDay.kind === 'normal')
+                return now;
+        }
+    }
+
+    return null;
+}
+
+function runPolarTransitionScanSuite() {
+    const cases = [
+        ['Longyearbyen', 78.2232, 15.6267],
+        ['Utqiagvik', 71.2906, -156.7886],
+        ['McMurdo', mcmurdo.latitude, mcmurdo.longitude],
+        ['Vostok', -78.4645, 106.8376],
+    ];
+
+    for (const [name, latitude, longitude] of cases) {
+        const firstNormal = findFirstNormalDay(2026, latitude, longitude);
+        assert(firstNormal, `${name}: should have at least one normal civil twilight day`);
+
+        for (let offset = -2; offset <= 2; offset++) {
+            const now = new Date(firstNormal.getFullYear(), firstNormal.getMonth(),
+                firstNormal.getDate() + offset, 12, 0, 0);
+            const state = classifySolarState(now, latitude, longitude);
+            assertSolarStateShape(state, now, `${name} polar transition scan ${now.toDateString()}`);
+        }
+    }
+}
+
 function runNorthernPolarSuite() {
     const highNorthSummerNow = new Date(2026, 5, 21, 12, 0, 0);
     const highNorthSummer = classifySolarState(highNorthSummerNow, 80, 0);
@@ -312,6 +415,8 @@ function runWorkerSuite() {
         runArcticLocationSuite();
     else if (process.env.SOLAR_TEST_SUITE === 'tzdata-stress')
         runTzdataStressLocationSuite();
+    else if (process.env.SOLAR_TEST_SUITE === 'golden-solar')
+        runGoldenSolarFixtureSuite();
     else if (process.env.SOLAR_TEST_SUITE === 'invariants')
         runKeyLatitudeStressSuite();
     else
@@ -356,6 +461,12 @@ function runEveryTimeZoneSuite() {
         runWorker(timeZone, 'tzdata-stress');
     }
 
+    const goldenTimeZones = new Set();
+    for (const [, aliases] of goldenSolarFixtures)
+        goldenTimeZones.add(resolveTimeZone(timeZones, aliases));
+    for (const timeZone of goldenTimeZones)
+        runWorker(timeZone, 'golden-solar');
+
     return timeZones.length;
 }
 
@@ -363,6 +474,8 @@ if (process.env.SOLAR_TEST_WORKER === '1') {
     runWorkerSuite();
 } else {
     runWorker('Europe/London', 'london');
+    runTransitionBoundarySuite();
+    runPolarTransitionScanSuite();
     runWorker('Antarctica/McMurdo', 'antarctica');
     runNorthernPolarSuite();
     runLocationAgeSuite();

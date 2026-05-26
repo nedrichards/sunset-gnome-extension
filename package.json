@@ -1,7 +1,7 @@
 {
   "type": "module",
   "scripts": {
-    "test": "TZ=Europe/London node tests/solar.test.js",
+    "test": "TZ=Europe/London node tests/solar.test.js && node tests/appearance-policy.test.js",
     "package": "scripts/package.sh"
   },
   "private": true

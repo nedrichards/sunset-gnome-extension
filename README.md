@@ -85,13 +85,13 @@ Compile the schema while running from a checkout:
 glib-compile-schemas schemas
 ```
 
-Run the solar calculation tests:
+Run the automated tests:
 
 ```sh
 npm test
 ```
 
-The test suite keeps London as an explicit reference case, then stress-tests the solar scheduling code across every IANA timezone exposed by the local Node/tzdata build. It also includes real-world Antarctic and Arctic locations, date-line longitudes, polar and tropical latitudes, DST boundaries, and awkward offset zones such as Lord Howe, Chatham, Marquesas, Newfoundland, Casablanca, Gaza, Tehran, Santiago, and Apia.
+The test suite keeps London as an explicit reference case, then stress-tests the solar scheduling code across every IANA timezone exposed by the local Node/tzdata build. It also includes real-world Antarctic and Arctic locations, date-line longitudes, polar and tropical latitudes, DST boundaries, awkward offset zones such as Lord Howe, Chatham, Marquesas, Newfoundland, Casablanca, Gaza, Tehran, Santiago, and Apia, and policy tests for manual override and disable-restore behaviour.
 
 Build an installable extension zip:
 

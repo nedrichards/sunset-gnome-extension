@@ -10,6 +10,11 @@ import {
     describeLocationAge,
     isValidCoordinate,
 } from './lib/solar.js';
+import {
+    didUserOverrideScheme,
+    shouldApplyScheme,
+    shouldRestoreOnDisable,
+} from './lib/appearance-policy.js';
 
 const INTERFACE_SCHEMA = 'org.gnome.desktop.interface';
 const COLOR_SCHEMA = 'org.gnome.settings-daemon.plugins.color';
@@ -128,9 +133,12 @@ export default class SunsetAppearanceExtension extends Extension {
         this._loginProxy = null;
 
         const currentScheme = this._interfaceSettings?.get_string(COLOR_SCHEME_KEY);
-        if (!this._manualOverride && this._lastAppliedScheme &&
-            currentScheme === this._lastAppliedScheme &&
-            this._baselineScheme !== currentScheme) {
+        if (shouldRestoreOnDisable({
+            manualOverride: this._manualOverride,
+            lastAppliedScheme: this._lastAppliedScheme,
+            baselineScheme: this._baselineScheme,
+            currentScheme,
+        })) {
             this._setColorScheme(this._baselineScheme, 'disable-restore');
         }
 
@@ -159,7 +167,7 @@ export default class SunsetAppearanceExtension extends Extension {
                 return;
 
             const currentScheme = this._interfaceSettings.get_string(COLOR_SCHEME_KEY);
-            if (currentScheme !== this._lastAppliedScheme) {
+            if (didUserOverrideScheme(currentScheme, this._lastAppliedScheme)) {
                 this._manualOverride = true;
                 this._debug(`Manual color-scheme override detected: ${currentScheme}`);
             }
@@ -496,17 +504,24 @@ export default class SunsetAppearanceExtension extends Extension {
     }
 
     _maybeApplyScheme(scheme, reason, {forceTransition}) {
-        if (![SCHEME_DARK, SCHEME_DEFAULT].includes(scheme))
+        const decision = shouldApplyScheme({
+            scheme,
+            currentScheme: this._interfaceSettings.get_string(COLOR_SCHEME_KEY),
+            manualOverride: this._manualOverride,
+            forceTransition,
+            validSchemes: [SCHEME_DARK, SCHEME_DEFAULT],
+        });
+
+        if (decision.action === 'ignore')
             return;
 
-        if (this._manualOverride && !forceTransition) {
+        if (decision.action === 'defer') {
             this._debug(`Manual override active; deferred ${scheme} for ${reason}`);
             return;
         }
 
-        const currentScheme = this._interfaceSettings.get_string(COLOR_SCHEME_KEY);
-        if (currentScheme === scheme) {
-            this._lastAppliedScheme = scheme;
+        if (decision.action === 'record') {
+            this._lastAppliedScheme = decision.lastAppliedScheme;
             return;
         }
 
