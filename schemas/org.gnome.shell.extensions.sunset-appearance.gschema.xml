@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<schemalist>
+  <enum id="org.gnome.shell.extensions.sunset-appearance.TransitionMode">
+    <value nick="civil" value="0"/>
+  </enum>
+
+  <schema id="org.gnome.shell.extensions.sunset-appearance" path="/org/gnome/shell/extensions/sunset-appearance/">
+    <key name="automatic-switching" type="b">
+      <default>true</default>
+      <summary>Automatically switch appearance</summary>
+      <description>Whether the extension should change GNOME's color-scheme setting at civil dusk and civil dawn.</description>
+    </key>
+
+    <key name="debug-logging" type="b">
+      <default>false</default>
+      <summary>Enable debug logging</summary>
+      <description>Whether the extension should write diagnostic messages to the GNOME Shell log.</description>
+    </key>
+
+    <key name="cached-latitude" type="d">
+      <default>0.0</default>
+      <summary>Cached latitude</summary>
+      <description>The most recent latitude used to calculate civil dusk and civil dawn.</description>
+    </key>
+
+    <key name="cached-longitude" type="d">
+      <default>0.0</default>
+      <summary>Cached longitude</summary>
+      <description>The most recent longitude used to calculate civil dusk and civil dawn.</description>
+    </key>
+
+    <key name="cached-location-timestamp" type="x">
+      <default>0</default>
+      <summary>Cached location timestamp</summary>
+      <description>Unix timestamp in seconds for the cached location.</description>
+    </key>
+
+    <key name="transition-mode" enum="org.gnome.shell.extensions.sunset-appearance.TransitionMode">
+      <default>'civil'</default>
+      <summary>Transition mode</summary>
+      <description>The solar transition mode. Version 1 exposes only civil twilight.</description>
+    </key>
+  </schema>
+</schemalist>

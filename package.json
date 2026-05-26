@@ -1,0 +1,8 @@
+{
+  "type": "module",
+  "scripts": {
+    "test": "TZ=Europe/London node tests/solar.test.js",
+    "package": "scripts/package.sh"
+  },
+  "private": true
+}
