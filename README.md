@@ -16,7 +16,7 @@ org.gnome.desktop.interface color-scheme = 'default'
 
 The extension asks GeoClue for one coarse location fix when it starts, then stops the GeoClue client. If GeoClue is unavailable, denied, or slow, it falls back to GNOME Night Light's cached coordinates. If neither source has usable coordinates, the extension leaves the current appearance unchanged.
 
-Manual changes are respected. If the appearance setting is changed away from the value the extension last applied, the extension waits until the next scheduled dawn or dusk transition before changing it again.
+Manual changes are respected. If the appearance setting is changed away from the value the extension last applied, the extension waits until the next scheduled dawn or dusk transition before changing it again. Preferences also offers an explicit temporary light or dark choice, which is cleared at that next transition.
 
 ## Why Civil Twilight?
 
@@ -44,6 +44,8 @@ org.gnome.desktop.interface color-scheme
 
 That means it uses the same platform preference exposed by GNOME Settings. Applications that follow GNOME's colour-scheme setting respond normally, and applications that ignore it are left alone. This keeps the extension predictable and avoids maintaining a separate theme system.
 
+When the extension changes that preference, it starts GNOME Shell's own screen transition first—the same one used by the Dark Style Quick Settings toggle—so the Shell changes smoothly rather than abruptly.
+
 ### Switch at Civil Dusk and Civil Dawn
 
 The appearance changes are based on civil twilight rather than clock time, sunrise, sunset, or full darkness:
@@ -70,6 +72,10 @@ If neither GeoClue nor Night Light can provide usable coordinates, the extension
 If the user changes GNOME's appearance manually after the extension has applied a value, the extension treats that as intentional. It waits until the next scheduled dawn or dusk transition before changing the setting again.
 
 This avoids a tug of war between the extension and the user. The extension handles the routine daily transition, but the user's explicit choice wins for the current period.
+
+### Show the Current Schedule
+
+The read-only Status page shows the current appearance and solar period, the next switch, any temporary override, and the cached location with its age. It uses the same local solar calculation as the scheduler, so it is useful for confirming what the extension will do without adding another background service.
 
 ### Restore Carefully on Disable
 

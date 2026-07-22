@@ -2,6 +2,7 @@ import Gio from 'gi://Gio';
 import GLib from 'gi://GLib';
 
 import {Extension} from 'resource:///org/gnome/shell/extensions/extension.js';
+import * as Main from 'resource:///org/gnome/shell/ui/main.js';
 
 import {
     SCHEME_DARK,
@@ -12,6 +13,7 @@ import {
 } from './lib/solar.js';
 import {
     didUserOverrideScheme,
+    schemeForTemporaryOverride,
     shouldApplyScheme,
     shouldRestoreOnDisable,
 } from './lib/appearance-policy.js';
@@ -82,6 +84,7 @@ export default class SunsetAppearanceExtension extends Extension {
         this._baselineScheme = this._interfaceSettings.get_string(COLOR_SCHEME_KEY);
         this._lastAppliedScheme = null;
         this._manualOverride = false;
+        this._temporaryOverride = this._settings.get_string('temporary-override');
         this._transitionTimeoutId = 0;
         this._dailyResyncTimeoutId = 0;
         this._settingsSignalIds = [];
@@ -160,6 +163,19 @@ export default class SunsetAppearanceExtension extends Extension {
         this._settingsSignalIds.push(this._settings.connect('changed::transition-mode', () => {
             this._debug('Transition mode setting changed');
             this._recomputeAndSchedule('settings-change', {forceTransition: false});
+        }));
+
+        this._settingsSignalIds.push(this._settings.connect('changed::temporary-override', () => {
+            this._temporaryOverride = this._settings.get_string('temporary-override');
+            this._debug(`Temporary override changed to ${this._temporaryOverride}`);
+
+            if (this._temporaryOverride === 'none') {
+                this._manualOverride = false;
+                this._recomputeAndSchedule('temporary-override-cleared', {forceTransition: true});
+            } else {
+                this._applyTemporaryOverride();
+                this._recomputeAndSchedule('temporary-override', {forceTransition: false});
+            }
         }));
 
         this._interfaceSignalId = this._interfaceSettings.connect(`changed::${COLOR_SCHEME_KEY}`, () => {
@@ -490,16 +506,39 @@ export default class SunsetAppearanceExtension extends Extension {
         const state = classifySolarState(now, this._location.latitude, this._location.longitude);
         this._debug(`${reason}: ${state.period}; ${describeLocationAge(this._location.timestamp)}`);
 
-        this._maybeApplyScheme(state.scheme, reason, {forceTransition});
+        if (this._temporaryOverride === 'none')
+            this._maybeApplyScheme(state.scheme, reason, {forceTransition});
+        else
+            this._applyTemporaryOverride();
 
         if (state.nextCheck) {
             const secondsUntilCheck = (state.nextCheck.getTime() - now.getTime()) / 1000;
             this._transitionTimeoutId = addTimeoutSeconds('next transition',
                 secondsUntilCheck, () => {
-                    this._transitionTimeoutId = 0;
-                    this._manualOverride = false;
-                    this._recomputeAndSchedule('scheduled-transition', {forceTransition: true});
-                });
+                this._transitionTimeoutId = 0;
+                if (this._temporaryOverride !== 'none') {
+                    this._temporaryOverride = 'none';
+                    this._settings.set_string('temporary-override', 'none');
+                }
+                this._manualOverride = false;
+                this._recomputeAndSchedule('scheduled-transition', {forceTransition: true});
+            });
+        }
+    }
+
+    _applyTemporaryOverride() {
+        const scheme = schemeForTemporaryOverride(this._temporaryOverride,
+            SCHEME_DEFAULT, SCHEME_DARK);
+
+        if (!scheme)
+            return;
+
+        this._manualOverride = true;
+        this._lastAppliedScheme = null;
+
+        if (this._interfaceSettings.get_string(COLOR_SCHEME_KEY) !== scheme) {
+            this._runScreenTransition();
+            this._interfaceSettings.set_string(COLOR_SCHEME_KEY, scheme);
         }
     }
 
@@ -531,8 +570,17 @@ export default class SunsetAppearanceExtension extends Extension {
     _setColorScheme(scheme, reason) {
         this._lastAppliedScheme = scheme;
         this._manualOverride = false;
+        this._runScreenTransition();
         this._interfaceSettings.set_string(COLOR_SCHEME_KEY, scheme);
         this._debug(`${reason}: set color-scheme to ${scheme}`);
+    }
+
+    _runScreenTransition() {
+        // This is the same transition GNOME Shell's Dark Style Quick Settings
+        // toggle starts immediately before it changes color-scheme.
+        const transition = Main.layoutManager?.screenTransition;
+        if (transition?.run)
+            transition.run();
     }
 
     _debug(message) {

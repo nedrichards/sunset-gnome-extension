@@ -4,6 +4,12 @@
     <value nick="civil" value="0"/>
   </enum>
 
+  <enum id="org.gnome.shell.extensions.sunset-appearance.TemporaryOverride">
+    <value nick="none" value="0"/>
+    <value nick="light" value="1"/>
+    <value nick="dark" value="2"/>
+  </enum>
+
   <schema id="org.gnome.shell.extensions.sunset-appearance" path="/org/gnome/shell/extensions/sunset-appearance/">
     <key name="automatic-switching" type="b">
       <default>true</default>
@@ -39,6 +45,12 @@
       <default>'civil'</default>
       <summary>Transition mode</summary>
       <description>The solar transition mode. Version 1 exposes only civil twilight.</description>
+    </key>
+
+    <key name="temporary-override" enum="org.gnome.shell.extensions.sunset-appearance.TemporaryOverride">
+      <default>'none'</default>
+      <summary>Temporary appearance override</summary>
+      <description>A light or dark appearance choice that remains active only until the next scheduled civil dawn or dusk.</description>
     </key>
   </schema>
 </schemalist>

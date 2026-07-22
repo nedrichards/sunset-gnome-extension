@@ -1,5 +1,6 @@
 import {
     didUserOverrideScheme,
+    schemeForTemporaryOverride,
     shouldApplyScheme,
     shouldRestoreOnDisable,
 } from '../lib/appearance-policy.js';
@@ -87,6 +88,17 @@ function applyDecision(options) {
         'Matching the last applied scheme should not count as manual override');
     assert(!didUserOverrideScheme(SCHEME_DEFAULT, null),
         'No last applied scheme means no manual override can be detected');
+}
+
+{
+    assert(schemeForTemporaryOverride('light', SCHEME_DEFAULT, SCHEME_DARK) === SCHEME_DEFAULT,
+        'Light temporary override should choose the light scheme');
+    assert(schemeForTemporaryOverride('dark', SCHEME_DEFAULT, SCHEME_DARK) === SCHEME_DARK,
+        'Dark temporary override should choose the dark scheme');
+    assert(schemeForTemporaryOverride('none', SCHEME_DEFAULT, SCHEME_DARK) === null,
+        'No temporary override should not choose a scheme');
+    assert(schemeForTemporaryOverride('unknown', SCHEME_DEFAULT, SCHEME_DARK) === null,
+        'Unknown temporary override should not choose a scheme');
 }
 
 {
