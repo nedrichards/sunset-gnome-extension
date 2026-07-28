@@ -206,11 +206,12 @@ export default class SunsetAppearancePreferences extends ExtensionPreferences {
         overrideControl.connect('notify::selected', () => {
             settings.set_string('temporary-override', overrideValues[overrideControl.selected]);
         });
-        settings.connect('changed::temporary-override', () => {
+        const overrideSignalId = settings.connect('changed::temporary-override', () => {
             const selected = overrideValues.indexOf(settings.get_string('temporary-override'));
             if (selected >= 0 && overrideControl.selected !== selected)
                 overrideControl.selected = selected;
         });
+        statusSignalIds.push(overrideSignalId);
         automationGroup.add(overrideControl);
 
         const debugRow = new Adw.SwitchRow({

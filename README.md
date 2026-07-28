@@ -99,6 +99,13 @@ npm test
 
 The test suite keeps London as an explicit reference case, then stress-tests the solar scheduling code across every IANA timezone exposed by the local Node/tzdata build. It also includes real-world Antarctic and Arctic locations, date-line longitudes, polar and tropical latitudes, DST boundaries, awkward offset zones such as Lord Howe, Chatham, Marquesas, Newfoundland, Casablanca, Gaza, Tehran, Santiago, and Apia, and policy tests for manual override and disable-restore behaviour.
 
+Run the complete review check, including ESLint, tests, strict schema compilation, packaging, and archive inspection:
+
+```sh
+npm ci
+npm run check
+```
+
 Build an installable extension zip:
 
 ```sh
@@ -115,7 +122,7 @@ For a source install:
 UUID=sunset-appearance@nedrichards.com
 DEST="$HOME/.local/share/gnome-shell/extensions/$UUID"
 mkdir -p "$DEST"
-rsync -a --delete metadata.json extension.js prefs.js lib schemas "$DEST/"
+rsync -a --delete metadata.json extension.js prefs.js COPYING lib shell schemas "$DEST/"
 glib-compile-schemas "$DEST/schemas"
 gnome-extensions enable "$UUID"
 ```

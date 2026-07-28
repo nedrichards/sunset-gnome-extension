@@ -1,8 +1,14 @@
 {
   "type": "module",
   "scripts": {
+    "lint": "eslint .",
     "test": "TZ=Europe/London node tests/solar.test.js && node tests/appearance-policy.test.js",
-    "package": "scripts/package.sh"
+    "package": "scripts/package.sh",
+    "check": "npm run lint && npm test && glib-compile-schemas --strict schemas && npm run package && bash scripts/assert-package.sh"
   },
-  "private": true
+  "private": true,
+  "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "eslint": "^10.8.0"
+  }
 }
