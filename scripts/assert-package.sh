@@ -8,6 +8,7 @@ EXPECTED=(
     COPYING
     extension.js
     lib/appearance-policy.js
+    lib/screen-transition.js
     lib/solar.js
     metadata.json
     prefs.js

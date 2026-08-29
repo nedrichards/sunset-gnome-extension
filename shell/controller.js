@@ -15,6 +15,7 @@ import {
     shouldApplyScheme,
     shouldRestoreOnDisable,
 } from '../lib/appearance-policy.js';
+import {runScreenTransition} from '../lib/screen-transition.js';
 import {GeoclueLocationProvider} from './location-provider.js';
 import {addTimeoutSeconds, removeSource} from './timers.js';
 
@@ -421,9 +422,7 @@ export class SunsetAppearanceController {
         // toggle starts immediately before changing color-scheme. GNOME Shell
         // 51 moved the transition from LayoutManager to Main; prefer its new
         // location and retain the old one for Shell 45–50.
-        const screenTransition = Main.screenTransition ??
-            Main.layoutManager.screenTransition;
-        screenTransition.run();
+        runScreenTransition(Main);
     }
 
     _debug(message) {
