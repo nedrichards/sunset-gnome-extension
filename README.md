@@ -1,6 +1,6 @@
 # Sunset Appearance
 
-A GNOME Shell extension for GNOME Shell 45 to 50 that switches GNOME's native appearance preference at civil twilight.
+A GNOME Shell extension for GNOME Shell 45 to 51 that switches GNOME's native appearance preference at civil twilight.
 
 At civil dusk it sets:
 
@@ -44,7 +44,7 @@ org.gnome.desktop.interface color-scheme
 
 That means it uses the same platform preference exposed by GNOME Settings. Applications that follow GNOME's colour-scheme setting respond normally, and applications that ignore it are left alone. This keeps the extension predictable and avoids maintaining a separate theme system.
 
-When the extension changes that preference, it starts GNOME Shell's own screen transition first—the same one used by the Dark Style Quick Settings toggle—so the Shell changes smoothly rather than abruptly.
+When the extension changes that preference, it starts GNOME Shell's own screen transition first—the same one used by the Dark Style Quick Settings toggle—so the Shell changes smoothly rather than abruptly. GNOME Shell 51 moved the transition from the layout manager to `Main`; the extension supports both locations to retain the animation on Shell 45 through 51.
 
 ### Switch at Civil Dusk and Civil Dawn
 
