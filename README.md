@@ -128,3 +128,5 @@ gnome-extensions enable "$UUID"
 ```
 
 Restart GNOME Shell or log out and back in if the extension is not visible immediately.
+
+See [Maintenance](docs/maintenance.md) for dependency and CI package checks.

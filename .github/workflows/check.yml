@@ -1,6 +1,7 @@
 name: Check
 
 on:
+  workflow_dispatch:
   push:
     branches: [main]
   pull_request:
@@ -8,11 +9,15 @@ on:
 permissions:
   contents: read
 
+concurrency:
+  group: check-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   check:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
       - uses: actions/setup-node@v6
         with:
           node-version: lts/*
@@ -23,3 +28,20 @@ jobs:
         run: npm ci
       - name: Run checks
         run: npm run check
+      - name: Upload tested extension package
+        id: upload
+        uses: actions/upload-artifact@v7
+        with:
+          name: sunset-gnome-extension-${{ github.sha }}
+          path: build/*.shell-extension.zip
+          if-no-files-found: error
+          retention-days: 14
+      - name: Summarize package
+        env:
+          ARTIFACT_URL: ${{ steps.upload.outputs.artifact-url }}
+        run: |
+          {
+            echo "Tested checkout: $GITHUB_SHA"
+            echo "Download: $ARTIFACT_URL"
+            echo 'Retention: 14 days'
+          } >> "$GITHUB_STEP_SUMMARY"
