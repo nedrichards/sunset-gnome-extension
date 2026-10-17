@@ -99,10 +99,13 @@ npm test
 
 The test suite keeps London as an explicit reference case, then stress-tests the solar scheduling code across every IANA timezone exposed by the local Node/tzdata build. It also includes real-world Antarctic and Arctic locations, date-line longitudes, polar and tropical latitudes, DST boundaries, awkward offset zones such as Lord Howe, Chatham, Marquesas, Newfoundland, Casablanca, Gaza, Tehran, Santiago, and Apia, and policy tests for manual override and disable-restore behaviour.
 
-Run the complete review check, including ESLint, tests, strict schema compilation, packaging, and archive inspection:
+Run the complete review check, including ESLint, tests, strict schema compilation, packaging, archive inspection, and shexli static analysis (Python 3.14):
 
 ```sh
 npm ci
+python3 -m venv .venv
+. .venv/bin/activate
+python -m pip install -r requirements-shexli.txt
 npm run check
 ```
 
@@ -113,6 +116,8 @@ npm run package
 ```
 
 The zip is written to `build/sunset-appearance@nedrichards.com.shell-extension.zip`.
+
+GNOME Shell 45+ compiles the schema during installation, so the ZIP contains only its XML source. To analyze an already built ZIP, run `npm run check:shexli` with the Python environment active. The full report is saved to `build/shexli.json`. Warnings and errors block the check, apart from the exact, documented GNOME 51 false positive described in [Maintenance](docs/maintenance.md).
 
 ## Local Install
 

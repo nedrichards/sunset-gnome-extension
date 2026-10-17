@@ -12,7 +12,6 @@ EXPECTED=(
     lib/solar.js
     metadata.json
     prefs.js
-    schemas/gschemas.compiled
     schemas/org.gnome.shell.extensions.sunset-appearance.gschema.xml
     shell/controller.js
     shell/location-provider.js

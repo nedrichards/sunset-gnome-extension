@@ -16,9 +16,8 @@ cp "$ROOT_DIR/prefs.js" "$STAGING_DIR/"
 cp "$ROOT_DIR/COPYING" "$STAGING_DIR/"
 cp -R "$ROOT_DIR/lib" "$STAGING_DIR/"
 cp -R "$ROOT_DIR/shell" "$STAGING_DIR/"
-cp -R "$ROOT_DIR/schemas" "$STAGING_DIR/"
-
-glib-compile-schemas "$STAGING_DIR/schemas"
+mkdir -p "$STAGING_DIR/schemas"
+cp "$ROOT_DIR"/schemas/*.gschema.xml "$STAGING_DIR/schemas/"
 
 (
     cd "$STAGING_DIR"

@@ -1,3 +1,5 @@
 build/
 schemas/gschemas.compiled
 node_modules/
+.venv/
+__pycache__/

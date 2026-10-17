@@ -4,7 +4,9 @@
     "lint": "eslint .",
     "test": "TZ=Europe/London node tests/solar.test.js && node tests/appearance-policy.test.js && node tests/screen-transition.test.js",
     "package": "scripts/package.sh",
-    "check": "npm run lint && npm test && glib-compile-schemas --strict schemas && npm run package && bash scripts/assert-package.sh"
+    "check:shexli": "python3 scripts/check-shexli.py",
+    "test:shexli": "python3 -m unittest discover -s tests -p test_shexli.py",
+    "check": "npm run lint && npm test && glib-compile-schemas --strict schemas && npm run package && bash scripts/assert-package.sh && npm run test:shexli && npm run check:shexli"
   },
   "private": true,
   "devDependencies": {
