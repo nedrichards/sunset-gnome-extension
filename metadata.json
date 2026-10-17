@@ -1,6 +1,8 @@
 {
   "uuid": "sunset-appearance@nedrichards.com",
   "name": "Sunset Appearance",
+  "version": 1,
+  "version-name": "1.0.0",
   "description": "Switches GNOME's appearance preference at civil dusk and civil dawn.",
   "shell-version": [
     "45",
