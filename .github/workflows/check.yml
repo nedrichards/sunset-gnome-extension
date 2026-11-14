@@ -5,6 +5,8 @@ on:
   push:
     branches: [main]
   pull_request:
+  schedule:
+    - cron: 13 7 * * 3
 
 permissions:
   contents: read
@@ -15,40 +17,54 @@ concurrency:
 
 jobs:
   check:
-    runs-on: ubuntu-latest
+    runs-on: ${{ matrix.runner }}
     steps:
-      - uses: actions/checkout@v7
-      - uses: actions/setup-node@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7
         with:
-          node-version: lts/*
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1  # v7
+        with:
+          node-version: '24'
           cache: npm
-      - uses: actions/setup-python@v7
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0  # v7
         with:
           python-version: '3.14'
           cache: pip
           cache-dependency-path: requirements-shexli.txt
       - name: Install system tools
-        run: sudo apt-get update && sudo apt-get install --yes libglib2.0-bin zip unzip
+        run: sudo apt-get update && sudo apt-get install --yes libglib2.0-bin zip unzip gjs
       - name: Install JavaScript dependencies
         run: npm ci
+      - name: Load pure extension modules with native GJS
+        run: |
+          gjs -m lib/solar.js
+          gjs -m lib/appearance-policy.js
+          gjs -m lib/screen-transition.js
       - name: Install GNOME extension analyzer
         run: python -m pip install -r requirements-shexli.txt
       - name: Run checks
         run: npm run check
       - name: Upload shexli report
         if: ${{ always() }}
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9  # v7
         with:
-          name: shexli-${{ github.sha }}
+          name: shexli-${{ github.sha }}-${{ matrix.arch }}
           path: build/shexli.json
           if-no-files-found: ignore
           retention-days: 14
+      - name: Record tested package provenance
+        run: |
+          printf 'Built checkout: %s\nRunner architecture: %s\n' "$GITHUB_SHA" "$RUNNER_ARCH" > build/BUILD_INFO.txt
+          (cd build && sha256sum -- *.shell-extension.zip > SHA256SUMS)
       - name: Upload tested extension package
         id: upload
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9  # v7
         with:
-          name: sunset-gnome-extension-${{ github.sha }}
-          path: build/*.shell-extension.zip
+          name: sunset-gnome-extension-${{ github.sha }}-${{ matrix.arch }}
+          path: |
+            build/*.shell-extension.zip
+            build/BUILD_INFO.txt
+            build/SHA256SUMS
           if-no-files-found: error
           retention-days: 14
       - name: Summarize package
@@ -60,3 +76,85 @@ jobs:
             echo "Download: $ARTIFACT_URL"
             echo 'Retention: 14 days'
           } >> "$GITHUB_STEP_SUMMARY"
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - arch: x86_64
+            runner: ubuntu-24.04
+          - arch: aarch64
+            runner: ubuntu-24.04-arm
+  compatibility:
+    runs-on: ${{ matrix.runner }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1  # v7
+        with:
+          node-version: current
+          cache: npm
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0  # v7
+        with:
+          python-version: '3.14'
+          cache: pip
+          cache-dependency-path: requirements-shexli.txt
+      - name: Install system tools
+        run: sudo apt-get update && sudo apt-get install --yes libglib2.0-bin zip unzip gjs
+      - name: Install JavaScript dependencies
+        run: npm ci
+      - name: Load pure extension modules with native GJS
+        run: |
+          gjs -m lib/solar.js
+          gjs -m lib/appearance-policy.js
+          gjs -m lib/screen-transition.js
+      - name: Install GNOME extension analyzer
+        run: python -m pip install -r requirements-shexli.txt
+      - name: Run checks
+        run: npm run check
+      - name: Upload shexli report
+        if: ${{ always() }}
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9  # v7
+        with:
+          name: compatibility-shexli-${{ github.sha }}-${{ matrix.arch }}
+          path: build/shexli.json
+          if-no-files-found: ignore
+          retention-days: 14
+      - name: Record tested package provenance
+        run: |
+          printf 'Built checkout: %s\nRunner architecture: %s\n' "$GITHUB_SHA" "$RUNNER_ARCH" > build/BUILD_INFO.txt
+          (cd build && sha256sum -- *.shell-extension.zip > SHA256SUMS)
+      - name: Upload tested extension package
+        id: upload
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9  # v7
+        with:
+          name: compatibility-sunset-gnome-extension-${{ github.sha }}-${{ matrix.arch }}
+          path: |
+            build/*.shell-extension.zip
+            build/BUILD_INFO.txt
+            build/SHA256SUMS
+          if-no-files-found: error
+          retention-days: 14
+      - name: Summarize package
+        env:
+          ARTIFACT_URL: ${{ steps.upload.outputs.artifact-url }}
+        run: |
+          {
+            echo "Tested checkout: $GITHUB_SHA"
+            echo "Download: $ARTIFACT_URL"
+            echo 'Retention: 14 days'
+          } >> "$GITHUB_STEP_SUMMARY"
+      - name: Audit locked JavaScript dependencies
+        run: npm audit --audit-level=high
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - arch: x86_64
+            runner: ubuntu-24.04
+          - arch: aarch64
+            runner: ubuntu-24.04-arm
+    name: Current Node compatibility (${{ matrix.arch }})
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'

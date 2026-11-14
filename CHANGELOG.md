@@ -1,5 +1,9 @@
 # Changelog
 
+## Unreleased
+
+- Strengthen hosted workflow security, native architecture coverage, diagnostics and reviewed release provenance.
+
 ## 1.0.0 — 2026-10-17
 
 First packaged GitHub release of Sunset Appearance, for GNOME Shell 45–51.
